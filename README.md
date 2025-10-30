@@ -1,83 +1,118 @@
+-- Forsaken Hub Loading Screen Script for Arceus X
+-- Professional Loading Screen - Full Screen Mode
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Set Roblox to Fullscreen
+StarterGui:SetCore("TopbarEnabled", false)
+UserInputService.MouseIconEnabled = false
 
 -- Create ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ForsakenHub"
-ScreenGui.Parent = PlayerGui
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ForsakenHubLoader"
+screenGui.Parent = playerGui
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
 
--- Colors Theme (Dark Modern)
-local Colors = {
-    Primary = Color3.fromRGB(25, 25, 35),
-    Secondary = Color3.fromRGB(45, 45, 55),
-    Accent = Color3.fromRGB(100, 150, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    Danger = Color3.fromRGB(255, 100, 100),
-    Success = Color3.fromRGB(100, 255, 100),
-    Warning = Color3.fromRGB(255, 200, 100)
-}
+-- Background Frame - Full Screen
+local background = Instance.new("Frame")
+background.Name = "Background"
+background.Parent = screenGui
+background.Size = UDim2.new(1, 0, 1, 0)
+background.Position = UDim2.new(0, 0, 0, 0)
+background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+background.BorderSizePixel = 0
 
--- Loading Screen
-local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Name = "LoadingFrame"
-LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
-LoadingFrame.Position = UDim2.new(0, 0, 0, 0)
-LoadingFrame.BackgroundColor3 = Colors.Primary
-LoadingFrame.BorderSizePixel = 0
-LoadingFrame.Parent = ScreenGui
+-- Loading Bar Frame
+local loadingBarFrame = Instance.new("Frame")
+loadingBarFrame.Name = "LoadingBarFrame"
+loadingBarFrame.Parent = background
+loadingBarFrame.Size = UDim2.new(0.3, 0, 0.02, 0)
+loadingBarFrame.Position = UDim2.new(0.35, 0, 0.5, 0)
+loadingBarFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+loadingBarFrame.BorderSizePixel = 0
 
-local LoadingTitle = Instance.new("TextLabel")
-LoadingTitle.Name = "LoadingTitle"
-LoadingTitle.Size = UDim2.new(0.3, 0, 0.1, 0)
-LoadingTitle.Position = UDim2.new(0.35, 0, 0.3, 0)
-LoadingTitle.BackgroundTransparency = 1
-LoadingTitle.Text = "Forsaken Hub - Loading..."
-LoadingTitle.TextColor3 = Colors.Text
-LoadingTitle.TextScaled = true
-LoadingTitle.Font = Enum.Font.GothamBold
-LoadingTitle.Parent = LoadingFrame
+-- Loading Bar
+local loadingBar = Instance.new("Frame")
+loadingBar.Name = "LoadingBar"
+loadingBar.Parent = loadingBarFrame
+loadingBar.Size = UDim2.new(0, 0, 1, 0)
+loadingBar.Position = UDim2.new(0, 0, 0, 0)
+loadingBar.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+loadingBar.BorderSizePixel = 0
 
-local ProgressBarFrame = Instance.new("Frame")
-ProgressBarFrame.Name = "ProgressBarFrame"
-ProgressBarFrame.Size = UDim2.new(0.4, 0, 0.05, 0)
-ProgressBarFrame.Position = UDim2.new(0.3, 0, 0.45, 0)
-ProgressBarFrame.BackgroundColor3 = Colors.Secondary
-ProgressBarFrame.BorderSizePixel = 0
-ProgressBarFrame.Parent = LoadingFrame
+-- Corner for Loading Bar
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 5)
+corner.Parent = loadingBarFrame
 
-local ProgressBar = Instance.new("Frame")
-ProgressBar.Name = "ProgressBar"
-ProgressBar.Size = UDim2.new(0, 0, 1, 0)
-ProgressBar.Position = UDim2.new(0, 0, 0, 0)
-ProgressBar.BackgroundColor3 = Colors.Accent
-ProgressBar.BorderSizePixel = 0
-ProgressBar.Parent = ProgressBarFrame
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(0, 5)
+corner2.Parent = loadingBar
 
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 8)
-Corner.Parent = ProgressBarFrame
-Corner.Parent = ProgressBar
+-- Title Text
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Parent = background
+title.Size = UDim2.new(0.5, 0, 0.1, 0)
+title.Position = UDim2.new(0.25, 0, 0.2, 0)
+title.BackgroundTransparency = 1
+title.Text = "Forsaken Hub"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextStrokeTransparency = 0
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 
--- Simulate Loading
-local loadingTween = TweenService:Create(ProgressBar, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
-loadingTween:Play()
-loadingTween.Completed:Connect(function()
-    wait(0.5)
-    local fadeOut = TweenService:Create(LoadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {BackgroundTransparency = 1})
-    fadeOut:Play()
-    fadeOut.Completed:Connect(function()
-        LoadingFrame:Destroy()
-        -- Open Main Menu
-        CreateMainGUI()
+-- Subtitle Text
+local subtitle = Instance.new("TextLabel")
+subtitle.Name = "Subtitle"
+subtitle.Parent = background
+subtitle.Size = UDim2.new(0.5, 0, 0.05, 0)
+subtitle.Position = UDim2.new(0.25, 0, 0.32, 0)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Loading..."
+subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+subtitle.TextScaled = true
+subtitle.Font = Enum.Font.Gotham
+
+-- Dots Animation
+local dots = "..."
+local function animateDots()
+    local i = 0
+    spawn(function()
+        while title.Parent do
+            i = i + 1
+            if i > 3 then i = 1 end
+            subtitle.Text = "Loading" .. string.rep(".", i)
+            wait(0.5)
+        end
     end)
+end
+animateDots()
+
+-- Loading Animation
+local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+local tween = TweenService:Create(loadingBar, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+tween:Play()
+
+-- Fade Out After Loading (Simulate 5 seconds load)
+wait(5)
+local fadeInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local fadeTween = TweenService:Create(background, fadeInfo, {BackgroundTransparency = 1})
+fadeTween:Play()
+
+fadeTween.Completed:Connect(function()
+    -- Optionally load the actual hub here
+    -- For now, just clean up
+    screenGui:Destroy()
+    -- Re-enable topbar if needed
+    StarterGui:SetCore("TopbarEnabled", true)
+    UserInputService.MouseIconEnabled = true
 end)
