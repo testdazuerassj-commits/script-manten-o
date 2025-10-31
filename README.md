@@ -1,375 +1,309 @@
---// Forsaken Hub v2.0 | Arceus X | test123_DAZUERA
---// Animação profissional, UI arrastável, toggle switch, spectate + executor
---// Pressione INSERT para abrir/fechar
+-- Forsaken Hub Script for Arceus X (Roblox)
+-- Features: Animated opening menu, Draggable, Player Spectate with Toggle, Large Code Executor with Clear
 
-repeat wait() until game:IsLoaded()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
---// Variáveis globais
-local GUI_OPEN = false
-local SPECTATE_ACTIVE = false
-local SPECTATE_TARGET = nil
-local SPECTATE_CONNECTION = nil
-local EXECUTOR_HISTORY = {}
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ForsakenHub"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
---// Criação da GUI com animação profissional
-local function CreateForsakenHub()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "ForsakenHub"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 400, 0, 300)
+MainFrame.Visible = false
 
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 500, 0, 380)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -190)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Visible = false
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
+-- Corner for MainFrame
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 8)
+Corner.Parent = MainFrame
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 14)
-    UICorner.Parent = MainFrame
+-- Title Label
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Forsaken Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
 
-    local Glow = Instance.new("ImageLabel")
-    Glow.Name = "Glow"
-    Glow.Size = UDim2.new(1, 40, 1, 40)
-    Glow.Position = UDim2.new(0, -20, 0, -20)
-    Glow.BackgroundTransparency = 1
-    Glow.Image = "rbxassetid://4996891970"
-    Glow.ImageColor3 = Color3.fromRGB(100, 50, 255)
-    Glow.ImageTransparency = 0.7
-    Glow.ScaleType = Enum.ScaleType.Slice
-    Glow.SliceCenter = Rect.new(20, 20, 280, 280)
-    Glow.Parent = MainFrame
+-- Draggable Functionality
+local dragging = false
+local dragStart = nil
+local startPos = nil
 
-    --// Título
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(1, -60, 0, 40)
-    Title.Position = UDim2.new(0, 20, 0, 10)
-    Title.BackgroundTransparency = 1
-    Title.Text = "FORSAKEN HUB"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBlack
-    Title.TextSize = 20
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = MainFrame
-
-    --// Créditos
-    local Credits = Instance.new("TextLabel")
-    Credits.Name = "Credits"
-    Credits.Size = UDim2.new(1, -40, 0, 20)
-    Credits.Position = UDim2.new(0, 20, 0, 45)
-    Credits.BackgroundTransparency = 1
-    Credits.Text = "Créditos: test123_DAZUERA"
-    Credits.TextColor3 = Color3.fromRGB(180, 180, 180)
-    Credits.Font = Enum.Font.Gotham
-    Credits.TextSize = 12
-    Credits.TextXAlignment = Enum.TextXAlignment.Left
-    Credits.Parent = MainFrame
-
-    --// Botão Fechar
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Name = "CloseBtn"
-    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-    CloseBtn.Position = UDim2.new(1, -40, 0, 10)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    CloseBtn.Text = "×"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 18
-    CloseBtn.Parent = MainFrame
-
-    local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, 8)
-    CloseCorner.Parent = CloseBtn
-
-    --// Drag System
-    local dragging = false
-    local dragInput, mousePos, framePos
-
-    Title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            mousePos = input.Position
-            framePos = MainFrame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    Title.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-            local delta = input.Position - mousePos
-            MainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-        end
-    end)
-
-    --// Spectate Section
-    local SpectateFrame = Instance.new("Frame")
-    SpectateFrame.Name = "SpectateFrame"
-    SpectateFrame.Size = UDim2.new(1, -40, 0, 50)
-    SpectateFrame.Position = UDim2.new(0, 20, 0, 80)
-    SpectateFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-    SpectateFrame.Parent = MainFrame
-
-    local SpecCorner = Instance.new("UICorner")
-    SpecCorner.CornerRadius = UDim.new(0, 8)
-    SpecCorner.Parent = SpectateFrame
-
-    local SpecLabel = Instance.new("TextLabel")
-    SpecLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    SpecLabel.Position = UDim2.new(0, 15, 0, 0)
-    SpecLabel.BackgroundTransparency = 1
-    SpecLabel.Text = "Spectate Player"
-    SpecLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SpecLabel.Font = Enum.Font.Gotham
-    SpecLabel.TextSize = 14
-    SpecLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SpecLabel.Parent = SpectateFrame
-
-    --// Toggle Switch
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Name = "Toggle"
-    ToggleBtn.Size = UDim2.new(0, 50, 0, 26)
-    ToggleBtn.Position = UDim2.new(1, -65, 0.5, -13)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    ToggleBtn.Text = ""
-    ToggleBtn.Parent = SpectateFrame
-
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 13)
-    ToggleCorner.Parent = ToggleBtn
-
-    local Indicator = Instance.new("Frame")
-    Indicator.Name = "Indicator"
-    Indicator.Size = UDim2.new(0, 20, 0, 20)
-    Indicator.Position = UDim2.new(0, 3, 0, 3)
-    Indicator.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-    Indicator.Parent = ToggleBtn
-
-    local IndCorner = Instance.new("UICorner")
-    IndCorner.CornerRadius = UDim.new(0, 10)
-    IndCorner.Parent = Indicator
-
-    --// Player List (Dropdown)
-    local PlayerList = Instance.new("ScrollingFrame")
-    PlayerList.Name = "PlayerList"
-    PlayerList.Size = UDim2.new(0.6, 0, 0, 120)
-    PlayerList.Position = UDim2.new(0, 15, 1, 5)
-    PlayerList.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    PlayerList.BorderSizePixel = 0
-    PlayerList.ScrollBarThickness = 4
-    PlayerList.Visible = false
-    PlayerList.Parent = SpectateFrame
-
-    local ListCorner = Instance.new("UICorner")
-    ListCorner.CornerRadius = UDim.new(0, 6)
-    ListCorner.Parent = PlayerList
-
-    local ListLayout = Instance.new("UIListLayout")
-    ListLayout.Padding = UDim.new(0, 2)
-    ListLayout.Parent = PlayerList
-
-    --// Atualiza lista de jogadores
-    local function UpdatePlayers()
-        for _, v in pairs(PlayerList:GetChildren()) do
-            if v:IsA("TextButton") then v:Destroy() end
-        end
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-                local btn = Instance.new("TextButton")
-                btn.Size = UDim2.new(1, -10, 0, 26)
-                btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-                btn.Text = plr.DisplayName .. " (@" .. plr.Name .. ")"
-                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                btn.Font = Enum.Font.Gotham
-                btn.TextSize = 12
-                btn.Parent = PlayerList
-
-                local btnCorner = Instance.new("UICorner")
-                btnCorner.CornerRadius = UDim.new(0, 4)
-                btnCorner.Parent = btn
-
-                btn.MouseButton1Click:Connect(function()
-                    SPECTATE_TARGET = plr
-                    SpecLabel.Text = "Spectate: " .. plr.DisplayName
-                    PlayerList.Visible = false
-                end)
-            end
-        end
-        PlayerList.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
-    end
-
-    --// Clique no label abre lista
-    SpecLabel.MouseButton1Click:Connect(function()
-        UpdatePlayers()
-        PlayerList.Visible = not PlayerList.Visible
-    end)
-
-    --// Toggle Spectate
-    ToggleBtn.MouseButton1Click:Connect(function()
-        SPECTATE_ACTIVE = not SPECTATE_ACTIVE
-
-        if SPECTATE_ACTIVE then
-            if not SPECTATE_TARGET then
-                SPECTATE_ACTIVE = false
-                ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                Indicator:TweenPosition(UDim2.new(0, 3, 0, 3), "Out", "Quad", 0.2)
-                return
-            end
-
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-            Indicator:TweenPosition(UDim2.new(1, -23, 0, 3), "Out", "Quad", 0.2)
-
-            Camera.CameraType = Enum.CameraType.Scriptable
-            SPECTATE_CONNECTION = RunService.RenderStepped:Connect(function()
-                if SPECTATE_TARGET and SPECTATE_TARGET.Character and SPECTATE_TARGET.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = SPECTATE_TARGET.Character.HumanoidRootPart
-                    Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(6, 4, 6), hrp.Position)
-                end
-            end)
-        else
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-            Indicator:TweenPosition(UDim2.new(0, 3, 0, 3), "Out", "Quad", 0.2)
-            SpecLabel.Text = "Spectate Player"
-            SPECTATE_TARGET = nil
-
-            if SPECTATE_CONNECTION then
-                SPECTATE_CONNECTION:Disconnect()
-                SPECTATE_CONNECTION = nil
-            end
-            Camera.CameraType = Enum.CameraType.Custom
-        end
-    end)
-
-    --// Executor Section
-    local ExecutorFrame = Instance.new("Frame")
-    ExecutorFrame.Name = "Executor"
-    ExecutorFrame.Size = UDim2.new(1, -40, 0, 180)
-    ExecutorFrame.Position = UDim2.new(0, 20, 0, 140)
-    ExecutorFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-    ExecutorFrame.Parent = MainFrame
-
-    local ExecCorner = Instance.new("UICorner")
-    ExecCorner.CornerRadius = UDim.new(0, 10)
-    ExecCorner.Parent = ExecutorFrame
-
-    local CodeBox = Instance.new("TextBox")
-    CodeBox.Name = "CodeBox"
-    CodeBox.Size = UDim2.new(1, -80, 1, -40)
-    CodeBox.Position = UDim2.new(0, 10, 0, 10)
-    CodeBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    CodeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CodeBox.PlaceholderText = "-- Digite seu código Lua aqui..."
-    CodeBox.Text = ""
-    CodeBox.MultiLine = true
-    CodeBox.TextWrapped = true
-    CodeBox.Font = Enum.Font.Code
-    CodeBox.TextSize = 13
-    CodeBox.TextXAlignment = Enum.TextXAlignment.Left
-    CodeBox.TextYAlignment = Enum.TextYAlignment.Top
-    CodeBox.Parent = ExecutorFrame
-
-    local BoxCorner = Instance.new("UICorner")
-    BoxCorner.CornerRadius = UDim.new(0, 6)
-    BoxCorner.Parent = CodeBox
-
-    local ExecBtn = Instance.new("TextButton")
-    ExecBtn.Name = "ExecBtn"
-    ExecBtn.Size = UDim2.new(0, 60, 0, 28)
-    ExecBtn.Position = UDim2.new(1, -70, 1, -35)
-    ExecBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
-    ExecBtn.Text = "EXEC"
-    ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ExecBtn.Font = Enum.Font.GothamBold
-    ExecBtn.TextSize = 12
-    ExecBtn.Parent = ExecutorFrame
-
-    local ExecBtnCorner = Instance.new("UICorner")
-    ExecBtnCorner.CornerRadius = UDim.new(0, 6)
-    ExecBtnCorner.Parent = ExecBtn
-
-    --// Executar código
-    ExecBtn.MouseButton1Click:Connect(function()
-        local code = CodeBox.Text
-        if code ~= "" then
-            local func, err = loadstring(code)
-            if func then
-                spawn(function()
-                    local success, result = pcall(func)
-                    if not success then
-                        warn("Erro: " .. tostring(result))
-                    end
-                end)
-                table.insert(EXECUTOR_HISTORY, code)
-            else
-                warn("Erro de compilação: " .. err)
-            end
-        end
-    end)
-
-    --// Fechar GUI
-    CloseBtn.MouseButton1Click:Connect(function()
-        GUI_OPEN = false
-        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        })
-        tween:Play()
-        tween.Completed:Wait()
-        MainFrame.Visible = false
-    end)
-
-    --// Abrir GUI com animação
-    local function OpenGUI()
-        MainFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-
-        local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 500, 0, 380),
-            Position = UDim2.new(0.5, -250, 0.5, -190)
-        })
-        openTween:Play()
-
-        Glow.ImageTransparency = 0.7
-        TweenService:Create(Glow, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {ImageTransparency = 0.9}):Play()
-    end
-
-    --// Tecla INSERT
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == Enum.KeyCode.Insert then
-            GUI_OPEN = not GUI_OPEN
-            if GUI_OPEN then
-                OpenGUI()
-            else
-                CloseBtn.MouseButton1Click:Fire()
-            end
-        end
-    end)
-
-    --// Iniciar
-    OpenGUI()
-    print("[Forsaken Hub] Carregado com sucesso! Pressione INSERT para abrir/fechar.")
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
---// Iniciar Hub
-spawn(function()
-    pcall(CreateForsakenHub)
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
+
+Title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        updateInput(input)
+    end
+end)
+
+-- Spectate Section
+local SpectateFrame = Instance.new("Frame")
+SpectateFrame.Name = "SpectateFrame"
+SpectateFrame.Parent = MainFrame
+SpectateFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+SpectateFrame.BorderSizePixel = 0
+SpectateFrame.Position = UDim2.new(0, 10, 0, 50)
+SpectateFrame.Size = UDim2.new(1, -20, 0, 60)
+
+local SpectateCorner = Instance.new("UICorner")
+SpectateCorner.CornerRadius = UDim.new(0, 4)
+SpectateCorner.Parent = SpectateFrame
+
+local SpectateLabel = Instance.new("TextLabel")
+SpectateLabel.Name = "SpectateLabel"
+SpectateLabel.Parent = SpectateFrame
+SpectateLabel.BackgroundTransparency = 1
+SpectateLabel.Position = UDim2.new(0, 10, 0, 5)
+SpectateLabel.Size = UDim2.new(0.6, 0, 0, 20)
+SpectateLabel.Font = Enum.Font.Gotham
+SpectateLabel.Text = "Spectate Player:"
+SpectateLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpectateLabel.TextSize = 14
+SpectateLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Player Dropdown
+local PlayerDropdown = Instance.new("TextButton")
+PlayerDropdown.Name = "PlayerDropdown"
+PlayerDropdown.Parent = SpectateFrame
+PlayerDropdown.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+PlayerDropdown.BorderSizePixel = 0
+PlayerDropdown.Position = UDim2.new(0, 10, 0, 30)
+PlayerDropdown.Size = UDim2.new(0.6, 0, 0, 25)
+PlayerDropdown.Font = Enum.Font.Gotham
+PlayerDropdown.Text = "Select Player"
+PlayerDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerDropdown.TextSize = 12
+
+local DropdownCorner = Instance.new("UICorner")
+DropdownCorner.CornerRadius = UDim.new(0, 4)
+DropdownCorner.Parent = PlayerDropdown
+
+local selectedPlayer = nil
+
+local function updatePlayerList()
+    local playerList = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(playerList, player.Name)
+        end
+    end
+    table.sort(playerList)
+    -- For simplicity, we'll set text to current selection; in full impl, use a scrolling frame for dropdown
+    PlayerDropdown.Text = selectedPlayer and selectedPlayer.Name or "Select Player"
+end
+
+PlayerDropdown.MouseButton1Click:Connect(function()
+    -- Simple toggle for demo; in full, open dropdown list
+    local players = Players:GetPlayers()
+    if #players > 1 then
+        selectedPlayer = players[math.random(2, #players)]  -- Random for demo; replace with actual selection
+        updatePlayerList()
+    end
+end)
+
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+
+-- Toggle Switch for Spectate
+local ToggleFrame = Instance.new("Frame")
+ToggleFrame.Name = "ToggleFrame"
+ToggleFrame.Parent = SpectateFrame
+ToggleFrame.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+ToggleFrame.BorderSizePixel = 0
+ToggleFrame.Position = UDim2.new(0.7, 0, 0, 30)
+ToggleFrame.Size = UDim2.new(0, 50, 0, 25)
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ToggleFrame
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Position = UDim2.new(0, 2, 0, 2)
+ToggleButton.Size = UDim2.new(0.48, 0, 1, 0)
+ToggleButton.Font = Enum.Font.Gotham
+ToggleButton.Text = ""
+ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+local ToggleButtonCorner = Instance.new("UICorner")
+ToggleButtonCorner.CornerRadius = UDim.new(0, 10)
+ToggleButtonCorner.Parent = ToggleButton
+
+local isSpectating = false
+
+ToggleButton.MouseButton1Click:Connect(function()
+    isSpectating = not isSpectating
+    if isSpectating then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        if selectedPlayer and selectedPlayer.Character then
+            Camera.CameraSubject = selectedPlayer.Character:FindFirstChild("Humanoid")
+        end
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+    end
+end)
+
+-- Executor Section (Large TextBox)
+local ExecutorFrame = Instance.new("Frame")
+ExecutorFrame.Name = "ExecutorFrame"
+ExecutorFrame.Parent = MainFrame
+ExecutorFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ExecutorFrame.BorderSizePixel = 0
+ExecutorFrame.Position = UDim2.new(0, 10, 0, 120)
+ExecutorFrame.Size = UDim2.new(1, -20, 0, 140)
+
+local ExecutorCorner = Instance.new("UICorner")
+ExecutorCorner.CornerRadius = UDim.new(0, 4)
+ExecutorCorner.Parent = ExecutorFrame
+
+local CodeBox = Instance.new("TextBox")
+CodeBox.Name = "CodeBox"
+CodeBox.Parent = ExecutorFrame
+CodeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CodeBox.BorderSizePixel = 0
+CodeBox.Position = UDim2.new(0, 5, 0, 5)
+CodeBox.Size = UDim2.new(1, -10, 1, -10)
+CodeBox.Font = Enum.Font.Code
+CodeBox.Text = "-- Enter your code here\nprint('Hello from Forsaken Hub!')"
+CodeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+CodeBox.TextSize = 12
+CodeBox.TextXAlignment = Enum.TextXAlignment.Left
+CodeBox.TextYAlignment = Enum.TextYAlignment.Top
+CodeBox.MultiLine = true
+CodeBox.ClearTextOnFocus = false
+
+local CodeBoxCorner = Instance.new("UICorner")
+CodeBoxCorner.CornerRadius = UDim.new(0, 4)
+CodeBoxCorner.Parent = CodeBox
+
+-- Execute Button (Assumed needed for executor)
+local ExecuteButton = Instance.new("TextButton")
+ExecuteButton.Name = "ExecuteButton"
+ExecuteButton.Parent = ExecutorFrame
+ExecuteButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ExecuteButton.BorderSizePixel = 0
+ExecuteButton.Position = UDim2.new(0, 5, 1, -30)
+ExecuteButton.Size = UDim2.new(0.48, 0, 0, 25)
+ExecuteButton.Font = Enum.Font.GothamBold
+ExecuteButton.Text = "Execute"
+ExecuteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecuteButton.TextSize = 12
+
+local ExecuteCorner = Instance.new("UICorner")
+ExecuteCorner.CornerRadius = UDim.new(0, 4)
+ExecuteCorner.Parent = ExecuteButton
+
+ExecuteButton.MouseButton1Click:Connect(function()
+    local success, err = pcall(function()
+        loadstring(CodeBox.Text)()
+    end)
+    if not success then
+        warn("Execution Error: " .. tostring(err))
+    end
+end)
+
+-- Clear Button
+local ClearButton = Instance.new("TextButton")
+ClearButton.Name = "ClearButton"
+ClearButton.Parent = ExecutorFrame
+ClearButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+ClearButton.BorderSizePixel = 0
+ClearButton.Position = UDim2.new(0.52, 0, 1, -30)
+ClearButton.Size = UDim2.new(0.48, 0, 0, 25)
+ClearButton.Font = Enum.Font.GothamBold
+ClearButton.Text = "Clear"
+ClearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearButton.TextSize = 12
+
+local ClearCorner = Instance.new("UICorner")
+ClearCorner.CornerRadius = UDim.new(0, 4)
+ClearCorner.Parent = ClearButton
+
+ClearButton.MouseButton1Click:Connect(function()
+    CodeBox.Text = ""
+end)
+
+-- Opening Animation
+local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -200, 0.5, -150),
+    Size = UDim2.new(0, 400, 0, 300),
+    BackgroundTransparency = 0
+})
+
+local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    Position = UDim2.new(0.5, -200, -1, 0),
+    BackgroundTransparency = 1
+})
+
+MainFrame.BackgroundTransparency = 1
+MainFrame.Position = UDim2.new(0.5, -200, -1, 0)
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Visible = true
+
+-- Start Animation
+openTween:Play()
+
+-- Close Button (Optional, add to title bar)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = Title
+CloseButton.BackgroundTransparency = 1
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.Size = UDim2.new(0, 30, 1, 0)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseButton.TextSize = 16
+
+CloseButton.MouseButton1Click:Connect(function()
+    closeTween:Play()
+    closeTween.Completed:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end)
+
+-- Update player list initially
+updatePlayerList()
+
+print("Forsaken Hub loaded successfully!")
